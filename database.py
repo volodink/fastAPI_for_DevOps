@@ -1,11 +1,16 @@
-from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-engine=create_engine("postgresql://{YOUR_DATABASE_USER}:{YOUR_DATABASE_PASSWORD}@localhost/{YOUR_DATABASE_NAME}",
-    echo=True
-)
+POSTGRES_USER = "fatsapi_db_user"
+POSTGRES_PASSWORD = "fatsapi_db_passwd"
+POSTGRES_SERVER = "db"
+POSTGRES_PORT = "5432"
+POSTGRES_DB = "fatsapi_db"
 
-Base=declarative_base()
+SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
-SessionLocal=sessionmaker(bind=engine)
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()

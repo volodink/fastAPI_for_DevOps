@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://fatsapi_db_user:fatsapi_db_passwd@db:5432/fatsapi_db
+    command: uvicorn main:app --host 0.0.0.0 --port 5000
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: fatsapi_db_user
+      POSTGRES_PASSWORD: fatsapi_db_passwd
+      POSTGRES_DB: fatsapi_db
+    ports:
+      - "5432:5432"

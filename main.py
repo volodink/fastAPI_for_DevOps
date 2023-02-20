@@ -1,80 +1,56 @@
-from fastapi import FastAPI,status,HTTPException
-from pydantic import BaseModel
-from typing import Optional,List
-from database import SessionLocal
+from fastapi import FastAPI, HTTPException
+from sqlalchemy.orm import Session
+from typing import List
+from fastapi import Depends
+
+import crud
 import models
+import schemas
+from database import SessionLocal, engine
 
-app=FastAPI()
+app = FastAPI()
 
-class Item(BaseModel): #serializer
-    id:int
-    name:str
-    description:str
-    price:int
-    on_offer:bool
+# create all tables
+models.Base.metadata.create_all(bind=engine)
 
-    class Config:
-        orm_mode=True
+# Dependency
+def get_db():
+    db = None
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
 
+@app.post("/users/", response_model=schemas.User)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return crud.create_user(db=db, user=user)
 
-db=SessionLocal()
+@app.get("/users/", response_model=List[schemas.User])
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = crud.get_users(db, skip=skip, limit=limit)
+    return users
 
-@app.get('/items',response_model=List[Item],status_code=200)
-def get_all_items():
-    items=db.query(models.Item).all()
+@app.get("/users/{user_id}", response_model=schemas.User)
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user_id=user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
 
-    return items
+@app.put("/users/{user_id}", response_model=schemas.User)
+def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user_id=user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return crud.update_user(db=db, db_user=db_user, user=user)
 
-@app.get('/item/{item_id}',response_model=Item,status_code=status.HTTP_200_OK)
-def get_an_item(item_id:int):
-    item=db.query(models.Item).filter(models.Item.id==item_id).first()
-    return item
-
-@app.post('/items',response_model=Item,
-        status_code=status.HTTP_201_CREATED)
-def create_an_item(item:Item):
-    db_item=db.query(models.Item).filter(models.Item.name==item.name).first()
-
-    if db_item is not None:
-        raise HTTPException(status_code=400,detail="Item already exists")
-
-
-
-    new_item=models.Item(
-        name=item.name,
-        price=item.price,
-        description=item.description,
-        on_offer=item.on_offer
-    )
-
-
-
-
-    db.add(new_item)
-    db.commit()
-
-    return new_item
-
-@app.put('/item/{item_id}',response_model=Item,status_code=status.HTTP_200_OK)
-def update_an_item(item_id:int,item:Item):
-    item_to_update=db.query(models.Item).filter(models.Item.id==item_id).first()
-    item_to_update.name=item.name
-    item_to_update.price=item.price
-    item_to_update.description=item.description
-    item_to_update.on_offer=item.on_offer
-
-    db.commit()
-
-    return item_to_update
-
-@app.delete('/item/{item_id}')
-def delete_item(item_id:int):
-    item_to_delete=db.query(models.Item).filter(models.Item.id==item_id).first()
-
-    if item_to_delete is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Resource Not Found")
-
-    db.delete(item_to_delete)
-    db.commit()
-
-    return item_to_delete
+@app.delete("/users/{user_id}", response_model=schemas.User)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user_id=user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return crud.delete_user(db=db, db_user=db_user)
