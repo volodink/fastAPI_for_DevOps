@@ -1,14 +1,16 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
-POSTGRES_USER = "fatsapi_db_user"
-POSTGRES_PASSWORD = "fatsapi_db_passwd"
-POSTGRES_SERVER = "db"
-POSTGRES_PORT = "5432"
-POSTGRES_DB = "fatsapi_db"
 
-SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+SQLALCHEMY_DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if SQLALCHEMY_DATABASE_URL is None:
+    raise ValueError('DATABASE_URL environment variable not set')
+else:
+    print("This is database url ******* ")
+    print(SQLALCHEMY_DATABASE_URL)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
